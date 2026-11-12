@@ -1,0 +1,82 @@
+{
+	"name": "Open a ticket when a client domain appears in a new breach",
+	"nodes": [
+		{
+			"parameters": {
+				"pollTimes": {
+					"item": [
+						{
+							"mode": "everyHour"
+						}
+					]
+				},
+				"domains": [],
+				"simplify": true
+			},
+			"id": "8c2e1d9f-4b52-4c68-8e1d-2a7d3b8f0c01",
+			"name": "New Breach Exposure",
+			"type": "n8n-nodes-xposedornot.xposedOrNotTrigger",
+			"typeVersion": 1,
+			"position": [0, 0]
+		},
+		{
+			"parameters": {
+				"fieldsToSummarize": {
+					"values": [
+						{
+							"aggregation": "append",
+							"field": "email"
+						},
+						{
+							"aggregation": "append",
+							"field": "breach"
+						}
+					]
+				},
+				"fieldsToSplitBy": "domain",
+				"options": {}
+			},
+			"id": "8c2e1d9f-4b52-4c68-8e1d-2a7d3b8f0c02",
+			"name": "Group by Domain",
+			"type": "n8n-nodes-base.summarize",
+			"typeVersion": 1.1,
+			"position": [220, 0]
+		},
+		{
+			"parameters": {
+				"resource": "issue",
+				"operation": "create",
+				"project": {
+					"__rl": true,
+					"mode": "id",
+					"value": "YOUR_PROJECT_ID"
+				},
+				"issueType": {
+					"__rl": true,
+					"mode": "id",
+					"value": "YOUR_ISSUE_TYPE_ID"
+				},
+				"summary": "=New breach exposure for {{ $json.domain }}",
+				"additionalFields": {
+					"description": "=Affected addresses:\n{{ [...new Set($json.appended_email)].join('\\n') }}\n\nBreaches:\n{{ [...new Set($json.appended_breach)].join('\\n') }}"
+				}
+			},
+			"id": "8c2e1d9f-4b52-4c68-8e1d-2a7d3b8f0c03",
+			"name": "Open Ticket",
+			"type": "n8n-nodes-base.jira",
+			"typeVersion": 1,
+			"position": [440, 0]
+		}
+	],
+	"connections": {
+		"New Breach Exposure": {
+			"main": [[{ "node": "Group by Domain", "type": "main", "index": 0 }]]
+		},
+		"Group by Domain": {
+			"main": [[{ "node": "Open Ticket", "type": "main", "index": 0 }]]
+		}
+	},
+	"settings": {
+		"executionOrder": "v1"
+	}
+}

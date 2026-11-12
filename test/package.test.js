@@ -105,6 +105,45 @@ test('the node and trigger describe themselves as n8n expects', () => {
 	assert.equal(trigger.credentials[0].required, true);
 });
 
+test('the example workflows use operations and parameters the nodes really have', () => {
+	const described = {
+		'n8n-nodes-xposedornot.xposedOrNot': new XposedOrNot().description,
+		'n8n-nodes-xposedornot.xposedOrNotTrigger': new XposedOrNotTrigger().description,
+	};
+	const files = fs
+		.readdirSync(path.join(root, 'examples'))
+		.filter((file) => file.endsWith('.json'));
+	assert.deepEqual(files.sort(), ['domain-exposure-ticket.json', 'signup-breach-check.json']);
+
+	for (const file of files) {
+		const workflow = JSON.parse(fs.readFileSync(path.join(root, 'examples', file), 'utf8'));
+		const names = workflow.nodes.map((node) => node.name);
+		for (const [source, outputs] of Object.entries(workflow.connections)) {
+			assert.ok(names.includes(source), `${file}: ${source}`);
+			for (const link of outputs.main.flat()) {
+				assert.ok(names.includes(link.node), `${file}: ${link.node}`);
+			}
+		}
+		const ours = workflow.nodes.filter((node) => node.type in described);
+		assert.ok(ours.length > 0, file);
+		for (const node of ours) {
+			const { properties } = described[node.type];
+			assert.equal(node.credentials, undefined, `${file}: no credential IDs in examples`);
+			for (const [name, value] of Object.entries(node.parameters)) {
+				if (name === 'pollTimes') continue;
+				const matches = properties.filter((property) => property.name === name);
+				assert.ok(matches.length > 0, `${file}: ${name}`);
+				if (name === 'resource' || name === 'operation') {
+					const allowed = matches.flatMap((property) =>
+						property.options.map((option) => option.value),
+					);
+					assert.ok(allowed.includes(value), `${file}: ${name}=${value}`);
+				}
+			}
+		}
+	}
+});
+
 test('Retry-After is read as seconds or as a date', () => {
 	const now = Date.parse('2026-11-12T10:00:00Z');
 	assert.equal(parseRetryAfter('7'), 7);
