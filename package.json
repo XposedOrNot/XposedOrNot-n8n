@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-xposedornot",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "n8n community node for XposedOrNot: check email addresses and domains for data breach exposure",
 	"license": "MIT",
 	"homepage": "https://github.com/XposedOrNot/XposedOrNot-n8n#readme",
